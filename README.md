@@ -12,6 +12,10 @@ Incremental linear algebra. Many problems in the area of Social Network Analysis
   - Block matrix layout is probably easiest and most flexible
 3. Implement sparse matrix - dense vector multiply
   - Most likely in Julia
+  a. Start with just changing of nonzero values
+  b. Add changing of sparsity pattern
+  c. Add increasing matrix size
+  d. Handle decreasing matrix size
 4. Profile performance
 
 ## If there is extra time
