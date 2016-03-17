@@ -5,21 +5,21 @@ Incremental linear algebra. Many problems in the area of Social Network Analysis
 ## Critical Path
 
 1. Find real-world dynamic graph
-  - Appears that real-world dynamic graphs are hard to get
-  - Perhaps generate my own dynamic graph
+  - [ ] Appears that real-world dynamic graphs are hard to get
+  - [ ] Perhaps generate my own dynamic graph
 2. Determine which correct structure for sparse matrix
-  - Structure choice depends on type of updates to matrix
-  - Block matrix layout is probably easiest and most flexible
+  - [ ] Structure choice depends on type of updates to matrix
+  - [ ] Block matrix layout is probably easiest and most flexible
 3. Implement sparse matrix - dense vector multiply
   - Most likely in Julia
-  a. Start with just changing of nonzero values
-  b. Add changing of sparsity pattern
-  c. Add increasing matrix size
-  d. Handle decreasing matrix size
-4. Profile performance
+  a. [ ] Start with just changing of nonzero values
+  b. [ ] Add changing of sparsity pattern
+  c. [ ] Add increasing matrix size
+  d. [ ] Handle decreasing matrix size
+4. [ ] Profile performance
 
 ## If there is extra time
 
-5. Implement sparse matrix - sparse matrix multiply
+5. [ ] Implement sparse matrix - sparse matrix multiply
   - Might actually be simpler than sparse matrix - dense vector
-6. Create macro to write complicated linear algebraic expressions
+6. [ ] Create macro to write complicated linear algebraic expressions
