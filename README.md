@@ -10,6 +10,9 @@ Incremental linear algebra. Many problems in the area of Social Network Analysis
 2. Determine which correct structure for sparse matrix
   - [ ] Structure choice depends on type of updates to matrix
   - [ ] Block matrix layout is probably easiest and most flexible
+        Block structure suffers if there are few off diagnol entries. A sparse
+        matrix of sparse matrices would probably be better. I'm not sure how to
+        get that working in Julia though.
 3. Implement sparse matrix - dense vector multiply
   - Most likely in Julia
   1. [ ] Start with just changing of nonzero values
