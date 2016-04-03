@@ -1,5 +1,10 @@
 
-import Base: setindex!, getindex
+module Inc
+
+export IncMat, copy, getindex, setindex!, from_mat, manifest, mult_full!,
+mult!, apply_elem_bin_op!
+
+import Base: setindex!, getindex, copy
 
 type IncMat{T}
     A :: Array{T, 2}
@@ -8,7 +13,9 @@ type IncMat{T}
     shape :: Tuple{Int, Int}
 end
 
-function ind(ind, blocksize)
+copy(A :: IncMat) = IncMat(copy(A.A), A.blocksize, copy(A.dirty), A.shape)
+
+@inline function ind(ind, blocksize)
     xb = div(ind[1]-1, blocksize[1]) + 1
     xi = (ind[1]-1) % blocksize[1] + 1
     yb = div(ind[2]-1, blocksize[2]) + 1
@@ -16,12 +23,12 @@ function ind(ind, blocksize)
     xb, yb, xi, yi
 end
 
-function getindex{T}(A :: IncMat{T}, inds...)
+@inline function getindex{T}(A :: IncMat{T}, inds...)
     xb, yb, xi, yi = ind(inds, A.blocksize)
     A.A[xb,yb][xi,yi]
 end
 
-function setindex!{T}(A :: IncMat{T}, val :: eltype(T), inds...)
+@inline function setindex!{T}(A :: IncMat{T}, val :: eltype(T), inds...)
     xb, yb, xi, yi = ind(inds, A.blocksize)
     A.dirty[xb,yb] = true
     A.A[xb,yb][xi,yi] = val
@@ -52,7 +59,7 @@ function from_mat{T}(A :: SparseMatrixCSC{T}, blocksize :: Tuple{Int, Int})
     B
 end
 
-function from_mat{T}(A :: Array{T}, blocksize :: Tuple{Int, Int})
+function from_mat{T}(A :: Array{T,2}, blocksize :: Tuple{Int, Int})
     xb, yb, _, _ = ind(size(A), blocksize)
 
     # initialize inc mat
@@ -73,6 +80,9 @@ function from_mat{T}(A :: Array{T}, blocksize :: Tuple{Int, Int})
 
     B
 end
+
+from_mat{T}(A :: Array{T,1}, blocksize :: Tuple{Int, Int}) =
+    from_mat(reshape(A, (size(A,1), 1)), blocksize)
 
 function manifest{T}(A :: IncMat{Array{T}})
     xs, ys = A.shape
@@ -120,27 +130,41 @@ function mult_full!(A :: IncMat, B :: IncMat, C :: IncMat)
     end
 end
 
-function mult!{T}(A :: IncMat, B :: IncMat, C :: IncMat{T})
-    # TODO: check blocksize
+function mult!{T}(A :: IncMat, B :: IncMat, C :: IncMat{T}, store_elem=true, check_block=true)
     if A.shape[2] != B.shape[1] || A.shape[1] != C.shape[1] || B.shape[2] != C.shape[2]
-        error("Matrix Dimensions do not match")
+        throw(DimensionMismatch("Matrix dimensions do not match"))
+    end
+    if (A.blocksize[2] != B.blocksize[1] || A.blocksize[1] != C.blocksize[1]
+        || B.blocksize[2] != C.blocksize[2])
+        throw(DimensionMismatch("Block dimensions do not match"))
     end
 
     is = size(A.A, 1)
     js = size(B.A, 2)
     ks = size(A.A, 2)
-    tmp = Array{T}((is, js, ks))
+    if store_elem
+        tmp = Array{T}((is, js, ks))
+    end
     () -> begin
         for i in 1:is
             for j in 1:js
-                # TODO: could probably store dirty status
-                if any(A.dirty[i,:]) || any(A.dirty[:,j]) # check if row/col is dirty
-                    C.A[i,j] = spzeros(C.blocksize...)
+                # TODO: could probably store dirty status per column
+                # check if row/col is dirty
+                if !check_block || any(A.dirty[i,:]) || any(B.dirty[:,j])
+                    if T <: DenseArray
+                        C.A[i,j] = zeros(C.blocksize...)
+                    else
+                        C.A[i,j] = spzeros(C.blocksize...)
+                    end
                     for k in 1:ks
-                        if A.dirty[i,k] || B.dirty[k,j] # check if blocks are dirty
-                            tmp[i,j,k] = A.A[i,k] * B.A[k,j]
+                        if store_elem
+                            if A.dirty[i,k] || B.dirty[k,j] # check if blocks are dirty
+                                tmp[i,j,k] = A.A[i,k] * B.A[k,j]
+                            end
+                            C.A[i,j] += tmp[i,j,k]
+                        else
+                            C.A[i,j] += A.A[i,k] * B.A[k,j]
                         end
-                        C.A[i,j] += tmp[i,j,k]
                     end
                     C.dirty[i,j] = true
                 end
@@ -149,10 +173,45 @@ function mult!{T}(A :: IncMat, B :: IncMat, C :: IncMat{T})
         # TODO: more efficient dirty?
         fill!(A.dirty, false)
         fill!(B.dirty, false)
+        return
     end
 end
 
-A = from_mat(speye(100), (2,2))
-B = from_mat(speye(100), (2,2))
-C = from_mat(speye(100), (2,2))
+"""
+Apply an elementwise binary operation to A and B
+"""
+function apply_elem_bin_op!(A :: IncMat, B :: IncMat, C :: IncMat, f)
+    if A.shape != B.shape || A.shape != C.shape
+        throw(DimensionMismatch("Matrix dimensions do not match"))
+    end
+    if A.blocksize != B.blocksize || A.blocksize != C.blocksize
+        throw(DimensionMismatch("Block dimensions do not match"))
+    end
+
+    x,y = size(A.A)
+    () -> begin
+        for i in 1:x
+            for j in 1:y
+                if A.dirty[i,j] || B.dirty[i,j]
+                    C.A[i,j] = f(A.A[i,j], B.A[i,j])
+                    C.dirty[i,j]
+                    A.dirty[i,j] = false
+                    B.dirty[i,j] = false
+                end
+            end
+        end
+    end
+end
+
+end
+
+using Inc
+
+A = from_mat(speye(1000), (10,10))
+B = from_mat(ones(1000), (10,1))
+C = from_mat(zeros(1000), (10,1))
 f = mult!(A,B,C)
+f()
+fill!(A.dirty, true)
+@time f()
+@time f()

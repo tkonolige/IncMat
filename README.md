@@ -8,21 +8,23 @@ Incremental linear algebra. Many problems in the area of Social Network Analysis
   - [ ] Appears that real-world dynamic graphs are hard to get
   - [ ] Perhaps generate my own dynamic graph
 2. Determine which correct structure for sparse matrix
-  - [ ] Structure choice depends on type of updates to matrix
-  - [ ] Block matrix layout is probably easiest and most flexible
-        Block structure suffers if there are few off diagnol entries. A sparse
-        matrix of sparse matrices would probably be better. I'm not sure how to
-        get that working in Julia though.
+  - [X] Structure choice depends on type of updates to matrix
+  - [X] Block matrix layout is probably easiest and most flexible.  Block
+    structure suffers if there are few off diagnol entries. A sparse matrix of
+    sparse matrices would probably be better. I'm not sure how to get that
+    working in Julia though.
 3. Implement sparse matrix - dense vector multiply
   - Most likely in Julia
-  1. [ ] Start with just changing of nonzero values
-  2. [ ] Add changing of sparsity pattern
+  1. [X] Start with just changing of nonzero values
+  2. [X] Add changing of sparsity pattern
   3. [ ] Add increasing matrix size
   4. [ ] Handle decreasing matrix size
+  5. [X] Support mat-mat mult
+  6. [X] Support mat-vec mult
+  7. [X] Support incremental binary elementwise operations
 4. [ ] Profile performance
 
 ## If there is extra time
 
-5. [ ] Implement sparse matrix - sparse matrix multiply
-  - Might actually be simpler than sparse matrix - dense vector
-6. [ ] Create macro to write complicated linear algebraic expressions
+1. [ ] Create macro to write complicated linear algebraic expressions
+2. [ ] Support complex expressions that use the same variable multiple times
