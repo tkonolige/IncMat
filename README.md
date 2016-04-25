@@ -6,6 +6,8 @@ Incremental linear algebra. Many problems in the area of Social Network Analysis
 
 1. Find real-world dynamic graph
   - [ ] Appears that real-world dynamic graphs are hard to get
+    - Some people have matrices/graphs that just change edge weights.
+      Maintaining the sparsity pattern makes life easier.
   - [ ] Perhaps generate my own dynamic graph
 2. Determine which correct structure for sparse matrix
   - [X] Structure choice depends on type of updates to matrix
@@ -17,14 +19,35 @@ Incremental linear algebra. Many problems in the area of Social Network Analysis
   - Most likely in Julia
   1. [X] Start with just changing of nonzero values
   2. [X] Add changing of sparsity pattern
-  3. [ ] Add increasing matrix size
-  4. [ ] Handle decreasing matrix size
-  5. [X] Support mat-mat mult
-  6. [X] Support mat-vec mult
-  7. [X] Support incremental binary elementwise operations
+  3. [X] Support mat-mat mult
+  4. [X] Support mat-vec mult
+  5. [X] Support incremental binary elementwise operations
 4. [ ] Profile performance
 
 ## If there is extra time
 
 1. [ ] Create macro to write complicated linear algebraic expressions
 2. [ ] Support complex expressions that use the same variable multiple times
+3. [ ] Add increasing matrix size
+4. [ ] Handle decreasing matrix size
+
+## Examples
+
+### Constructing a matrix
+
+```julia
+# a sparse matrix
+A = from_mat(speye(10000), (1000,1000))
+# a dense matrix
+B = from_mat(ones(10000), (1000,1))
+```
+
+### Multiplication
+```julia
+C = A * B
+C() # to get the result
+
+# update values
+A[1,1] = 20
+C() # get the updated matrix
+```

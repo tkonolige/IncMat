@@ -14,7 +14,7 @@ type IncMat{T}
 end
 
 function show{T}(io :: IO, x :: IncMat{T})
-    write(io, "$(x.shape[1]) x $(x.shape[2]) IncMat{$T} blocksize: $(x.blocksize[1]) x $(x.blocksize[2])")
+    write(io, "$(x.shape[1])×$(x.shape[2]) IncMat{$T} blocksize: $(x.blocksize[1])×$(x.blocksize[2])")
     if any(x.dirty)
         write(io, " (dirty)")
     end
@@ -42,7 +42,7 @@ eltype{T}(A :: IncFunc{T}) = eltype(A.A)
 blocktype{T}(A :: IncFunc{T}) = blocktype(A.A)
 
 function show{T}(io :: IO, x :: IncFunc{T})
-    write(io, "$(x.A.shape[1]) x $(x.A.shape[2]) IncFunc{$T} blocksize: $(x.A.blocksize[1]) x $(x.A.blocksize[2])")
+    write(io, "$(x.A.shape[1])×$(x.A.shape[2]) IncFunc{$T} blocksize: $(x.A.blocksize[1])×$(x.A.blocksize[2])")
     if any(x.A.dirty)
         write(io, " (dirty)")
     end
