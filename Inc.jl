@@ -2,7 +2,7 @@
 module Inc
 
 export IncMat, copy, getindex, setindex!, from_mat, manifest, mult_full!,
-mult!, apply_elem_bin_op!
+mult!, apply_elem_bin_op!, IncFunc
 
 import Base: setindex!, getindex, copy, eltype, *, +, -, show
 
@@ -155,7 +155,7 @@ function mult_full!(A :: IncMat, B :: IncMat, C :: IncMat)
     end
     for i in 1:size(A.A, 1)
         for j in 1:size(B.A, 2)
-            C.A[i,j] = spzeros(C.blocksize...)
+            C.A[i,j] = zeros(C.blocksize...)
             for k in 1:size(A.A, 2)
                 C.A[i,j] += A.A[i,k] * B.A[k,j]
             end
@@ -200,39 +200,46 @@ function *{T, F}(A :: IncMat{T}, B :: IncMat{F})
     ks = size(A.A, 2)
     if store_elem
         tmp = Array{TT}((is, js, ks))
+    else
+        tmp = Array{TT}()
     end
-    f = () -> begin
-        for i in 1:is
-            for j in 1:js
-                # TODO: could probably store dirty status per column
-                # check if row/col is dirty
-                if !check_block || any(A.dirty[i,:]) || any(B.dirty[:,j])
-                    # TODO: could check elementwise if answer is the same
-                    if TT <: DenseArray
-                        fill!(C.A[i,j], 0)
-                    else
-                        C.A[i,j] = spzeros(C.blocksize...)
-                    end
-                    for k in 1:ks
-                        if store_elem
-                            if A.dirty[i,k] || B.dirty[k,j] # check if blocks are dirty
-                                tmp[i,j,k] = A.A[i,k] * B.A[k,j]
-                            end
-                            C.A[i,j] += tmp[i,j,k]
-                        else
-                            C.A[i,j] += A.A[i,k] * B.A[k,j]
-                        end
-                    end
-                    C.dirty[i,j] = true
+
+    fill!(A.dirty, true)
+    fill!(B.dirty, true)
+    f = () -> mult_inner!(is, js, ks, A, B, C, check_block, store_elem, tmp, TT)
+    IncFunc(f, C)
+end
+
+function mult_inner!(is, js, ks, A, B, C, check_block, store_elem, tmp, TT)
+    for i in 1:is
+        for j in 1:js
+            # TODO: could probably store dirty status per column
+            # check if row/col is dirty
+            if !check_block || any(A.dirty[i,:]) || any(B.dirty[:,j])
+                # TODO: could check elementwise if answer is the same
+                if TT <: DenseArray
+                    fill!(C.A[i,j], 0)
+                else
+                    C.A[i,j] = spzeros(C.blocksize...)
                 end
+                for k in 1:ks
+                    if store_elem
+                        if A.dirty[i,k] || B.dirty[k,j] # check if blocks are dirty
+                            tmp[i,j,k] = A.A[i,k] * B.A[k,j]
+                        end
+                        C.A[i,j] += tmp[i,j,k]
+                    else
+                        C.A[i,j] += A.A[i,k] * B.A[k,j]
+                    end
+                end
+                C.dirty[i,j] = true
             end
         end
-        # TODO: more efficient dirty?
-        fill!(A.dirty, false)
-        fill!(B.dirty, false)
-        return
     end
-    IncFunc(f, C)
+    # TODO: more efficient dirty?
+    fill!(A.dirty, false)
+    fill!(B.dirty, false)
+    return Union{}
 end
 
 function *(A :: IncMat, B :: IncFunc)
@@ -342,9 +349,9 @@ end
 
 using Inc
 
-A = from_mat(speye(10000), (1000,1000))
-B = from_mat(speye(10000), (1000,1000))
-C = from_mat(ones(10000), (1000,1))
+#= A = from_mat(speye(10000), (1000,1000)) =#
+#= B = from_mat(speye(10000), (1000,1000)) =#
+#= C = from_mat(ones(10000), (1000,1)) =#
 #= f = mult!(A,B,C) =#
 #= f() =#
 #= fill!(A.dirty, true) =#
